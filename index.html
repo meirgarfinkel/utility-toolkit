@@ -1426,7 +1426,7 @@ function TimezoneTool() {
 .calc-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
 .calc-tab { padding: 8px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all var(--transition); font-family: var(--font-sans); }
 .calc-tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
-.calc-display { font-family: var(--font-mono); font-size: 32px; font-weight: 600; color: var(--text-primary); text-align: right; padding: 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 12px; min-height: 64px; display: flex; align-items: center; justify-content: flex-end; word-break: break-all; }
+.calc-display { font-family: var(--font-mono); font-size: 28px; font-weight: 600; color: var(--text-primary); text-align: right; padding: 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 12px; min-height: 64px; display: flex; align-items: center; justify-content: flex-end; word-break: break-all; overflow-x: auto; white-space: nowrap; }
 .calc-keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .calc-key { padding: 14px; font-size: 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-family: var(--font-mono); text-align: center; transition: all 100ms ease; user-select: none; }
 .calc-key:hover { background: var(--accent-dim); border-color: var(--accent); }
@@ -1453,39 +1453,96 @@ function TimezoneTool() {
 // BASIC ARITHMETIC CALCULATOR
 // ─────────────────────────────────────────────
 function CalcBasic() {
-  const [display, setDisplay] = useState('0');
-  const [prev, setPrev] = useState(null);
-  const [op, setOp] = useState(null);
-  const [fresh, setFresh] = useState(true);
+  const [expression, setExpression] = useState('');  // full equation string shown on screen
+  const [current, setCurrent] = useState('0');        // number being typed right now
+  const [prev, setPrev] = useState(null);             // stored numeric value for chaining
+  const [op, setOp] = useState(null);                 // pending operator
+  const [fresh, setFresh] = useState(true);            // true = next digit starts a new number
+  const [showResult, setShowResult] = useState(false); // true = just pressed equals
 
   const input = (d) => {
-    if (fresh) { setDisplay(d === '.' ? '0.' : d); setFresh(false); }
-    else {
-      if (d === '.' && display.includes('.')) return;
-      setDisplay(display === '0' && d !== '.' ? d : display + d);
+    if (showResult) {
+      // Starting fresh after seeing a result
+      setExpression('');
+      setCurrent(d === '.' ? '0.' : d);
+      setPrev(null);
+      setOp(null);
+      setFresh(false);
+      setShowResult(false);
+      return;
+    }
+    if (fresh) {
+      setCurrent(d === '.' ? '0.' : d);
+      setFresh(false);
+    } else {
+      if (d === '.' && current.includes('.')) return;
+      setCurrent(current === '0' && d !== '.' ? d : current + d);
     }
   };
 
   const doOp = (nextOp) => {
-    const cur = parseFloat(display);
+    if (showResult) {
+      // Chain from a result: e.g. "9−1=8" then press +, start "8 +"
+      setExpression(current + ' ' + nextOp + ' ');
+      setPrev(parseFloat(current));
+      setOp(nextOp);
+      setFresh(true);
+      setShowResult(false);
+      return;
+    }
+    const cur = parseFloat(current);
     if (prev !== null && op && !fresh) {
       let res;
       if (op === '+') res = prev + cur;
       else if (op === '−') res = prev - cur;
       else if (op === '×') res = prev * cur;
       else if (op === '÷') res = cur !== 0 ? prev / cur : 'Error';
-      if (res === 'Error') { setDisplay('Error'); setPrev(null); setOp(null); setFresh(true); return; }
-      setDisplay(String(parseFloat(res.toFixed(10))));
+      if (res === 'Error') {
+        setExpression(expression + current + ' = Error');
+        setCurrent('Error');
+        setPrev(null);
+        setOp(null);
+        setFresh(true);
+        setShowResult(true);
+        return;
+      }
+      const resStr = String(parseFloat(res.toFixed(10)));
+      setExpression(resStr + ' ' + nextOp + ' ');
+      setCurrent(resStr);
       setPrev(res);
-    } else { setPrev(cur); }
+    } else {
+      setExpression(current + ' ' + nextOp + ' ');
+      setPrev(cur);
+    }
     setOp(nextOp);
     setFresh(true);
   };
 
-  const equals = () => { doOp(null); setOp(null); };
-  const clear = () => { setDisplay('0'); setPrev(null); setOp(null); setFresh(true); };
-  const percent = () => { setDisplay(String(parseFloat(display) / 100)); setFresh(true); };
-  const negate = () => { setDisplay(String(parseFloat(display) * -1)); };
+  const equals = () => {
+    if (prev === null || !op || fresh) return;
+    const cur = parseFloat(current);
+    let res;
+    if (op === '+') res = prev + cur;
+    else if (op === '−') res = prev - cur;
+    else if (op === '×') res = prev * cur;
+    else if (op === '÷') res = cur !== 0 ? prev / cur : 'Error';
+    if (res === 'Error') {
+      setExpression(expression + current + ' = Error');
+      setCurrent('Error');
+    } else {
+      const resStr = String(parseFloat(res.toFixed(10)));
+      setExpression(expression + current + ' = ' + resStr);
+      setCurrent(resStr);
+      setPrev(parseFloat(resStr));
+    }
+    setOp(null);
+    setFresh(true);
+    setShowResult(true);
+  };
+
+  const clear = () => { setExpression(''); setCurrent('0'); setPrev(null); setOp(null); setFresh(true); setShowResult(false); };
+  const percent = () => { setCurrent(String(parseFloat(current) / 100)); setFresh(true); };
+  const negate = () => { setCurrent(String(parseFloat(current) * -1)); };
 
   const keys = [
     { l: 'AC', a: clear }, { l: '±', a: negate }, { l: '%', a: percent }, { l: '÷', a: () => doOp('÷'), c: 'op' },
@@ -1495,9 +1552,16 @@ function CalcBasic() {
     { l: '0', a: () => input('0'), c: 'wide' }, { l: '.', a: () => input('.') }, { l: '=', a: equals, c: 'accent' },
   ];
 
+  // What to show: if we have an expression in progress, show expression + current digit being typed
+  const displayText = showResult
+    ? expression                                    // "9 − 1 = 8"
+    : expression
+      ? expression + (fresh ? '' : current)         // "9 − " or "9 − 1"
+      : current;                                    // just "9"
+
   return (
     <div className="calc-card">
-      <div className="calc-display">{display}</div>
+      <div className="calc-display">{displayText}</div>
       <div className="calc-keypad">
         {keys.map((k, i) => (
           <div key={i} className={`calc-key ${k.c || ''}`} onClick={k.a}>{k.l}</div>
