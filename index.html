@@ -837,7 +837,7 @@ const TOOL_REGISTRY = [
   { id: 'uuid', name: 'UUID Generator', icon: '🆔', category: 'Generators', type: 'placeholder' },
   { id: 'qr', name: 'QR Code Generator', icon: '📱', category: 'Generators', type: 'placeholder' },
   { id: 'random', name: 'Random / Dice / Coin', icon: '🎲', category: 'Generators', type: 'placeholder' },
-  { id: 'palette', name: 'Color Palette', icon: '🌈', category: 'Generators', type: 'placeholder' },
+  { id: 'palette', name: 'Color Palette', icon: '🌈', category: 'Generators', type: 'gen-palette' },
 
   { id: 'stopwatch', name: 'Stopwatch / Timer', icon: '⏱️', category: 'Date & Time', type: 'placeholder' },
   { id: 'countdown', name: 'Countdown', icon: '⏳', category: 'Date & Time', type: 'placeholder' },
@@ -845,7 +845,7 @@ const TOOL_REGISTRY = [
   { id: 'world-clock', name: 'World Clock', icon: '🌐', category: 'Date & Time', type: 'placeholder' },
 
   { id: 'regex', name: 'Regex Tester', icon: '.*', category: 'Dev Tools', type: 'placeholder' },
-  { id: 'html-entity', name: 'HTML Entities', icon: '&amp;', category: 'Dev Tools', type: 'placeholder' },
+  { id: 'html-entity', name: 'HTML Entities', icon: '<>', category: 'Dev Tools', type: 'placeholder' },
   { id: 'css-units', name: 'CSS Unit Converter', icon: 'px', category: 'Dev Tools', type: 'placeholder' },
   { id: 'markdown', name: 'Markdown Preview', icon: 'M↓', category: 'Dev Tools', type: 'placeholder' },
   { id: 'jwt', name: 'JWT Decoder', icon: '🎟️', category: 'Dev Tools', type: 'placeholder' },
@@ -2153,6 +2153,196 @@ function CalcRouter({ type }) {
 }
 
 // ─────────────────────────────────────────────
+// COLOR PALETTE GENERATOR
+// ─────────────────────────────────────────────
+(() => {
+  const s = document.createElement('style');
+  s.textContent = `
+.palette-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: flex-end; }
+.palette-seed { display: flex; align-items: center; gap: 10px; }
+.palette-color-input { width: 48px; height: 40px; border: 2px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; background: none; padding: 2px; }
+.palette-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+.palette-color-input::-webkit-color-swatch { border: none; border-radius: 4px; }
+.palette-hex-input { width: 100px; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-mono); font-size: 14px; outline: none; }
+.palette-hex-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-dim); }
+.palette-grid { display: flex; flex-direction: column; gap: 12px; }
+.palette-row-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); margin-bottom: 4px; }
+.palette-swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+.palette-swatch { width: 64px; cursor: pointer; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); transition: transform 120ms ease, box-shadow 120ms ease; position: relative; }
+.palette-swatch:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.4); z-index: 2; }
+.palette-swatch-color { height: 56px; }
+.palette-swatch-info { padding: 6px 6px; background: var(--bg-card); }
+.palette-swatch-hex { font-family: var(--font-mono); font-size: 10px; color: var(--text-secondary); text-align: center; display: block; }
+.palette-copied { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); color: var(--accent); font-size: 11px; font-weight: 700; font-family: var(--font-mono); animation: fadeUp 0.3s ease; pointer-events: none; }
+.palette-section { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; animation: fadeUp 0.3s ease; }
+.palette-section + .palette-section { margin-top: 16px; }
+.palette-export { margin-top: 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); white-space: pre; overflow-x: auto; cursor: pointer; transition: border-color var(--transition); }
+.palette-export:hover { border-color: var(--accent); }
+  `;
+  document.head.appendChild(s);
+})();
+
+function hslToHex(h, s, l) {
+  h = ((h % 360) + 360) % 360;
+  s = Math.max(0, Math.min(100, s)) / 100;
+  l = Math.max(0, Math.min(100, l)) / 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+function hexToHSL(hex) {
+  hex = hex.replace('#', '');
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+    else if (max === g) h = ((b - r) / d + 2) * 60;
+    else h = ((r - g) / d + 4) * 60;
+  }
+  return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+function generatePalette(seedHex) {
+  const { h, s, l } = hexToHSL(seedHex);
+  return {
+    complementary: [
+      { hex: seedHex, name: 'Base' },
+      { hex: hslToHex((h + 180), s, l), name: 'Complement' },
+    ],
+    analogous: [
+      { hex: hslToHex((h - 30), s, l), name: '-30°' },
+      { hex: seedHex, name: 'Base' },
+      { hex: hslToHex((h + 30), s, l), name: '+30°' },
+    ],
+    triadic: [
+      { hex: seedHex, name: 'Base' },
+      { hex: hslToHex((h + 120), s, l), name: '+120°' },
+      { hex: hslToHex((h + 240), s, l), name: '+240°' },
+    ],
+    splitComp: [
+      { hex: seedHex, name: 'Base' },
+      { hex: hslToHex((h + 150), s, l), name: '+150°' },
+      { hex: hslToHex((h + 210), s, l), name: '+210°' },
+    ],
+    tetradic: [
+      { hex: seedHex, name: 'Base' },
+      { hex: hslToHex((h + 90), s, l), name: '+90°' },
+      { hex: hslToHex((h + 180), s, l), name: '+180°' },
+      { hex: hslToHex((h + 270), s, l), name: '+270°' },
+    ],
+    shades: Array.from({ length: 9 }, (_, i) => {
+      const lightness = 95 - i * 10;
+      return { hex: hslToHex(h, s, lightness), name: `${lightness}%` };
+    }),
+  };
+}
+
+function PaletteSwatch({ color, onCopy }) {
+  const [copied, setCopied] = useState(false);
+  const handleClick = () => {
+    navigator.clipboard?.writeText(color.hex).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1200);
+    if (onCopy) onCopy(color.hex);
+  };
+  return (
+    <div className="palette-swatch" onClick={handleClick} title={`Click to copy ${color.hex}`}>
+      <div className="palette-swatch-color" style={{ background: color.hex }} />
+      <div className="palette-swatch-info">
+        <span className="palette-swatch-hex">{color.hex}</span>
+      </div>
+      {copied && <div className="palette-copied">Copied</div>}
+    </div>
+  );
+}
+
+function GenPalette() {
+  const [seed, setSeed] = useState('#3a86ff');
+  const [hexInput, setHexInput] = useState('#3a86ff');
+
+  const handleHexChange = (val) => {
+    setHexInput(val);
+    const clean = val.startsWith('#') ? val : '#' + val;
+    if (/^#[0-9a-fA-F]{6}$/.test(clean)) setSeed(clean);
+  };
+
+  const handlePickerChange = (val) => {
+    setSeed(val);
+    setHexInput(val);
+  };
+
+  const randomize = () => {
+    const hex = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+    setSeed(hex);
+    setHexInput(hex);
+  };
+
+  const palette = useMemo(() => generatePalette(seed), [seed]);
+
+  const sections = [
+    { key: 'complementary', label: 'Complementary' },
+    { key: 'analogous', label: 'Analogous' },
+    { key: 'triadic', label: 'Triadic' },
+    { key: 'splitComp', label: 'Split Complementary' },
+    { key: 'tetradic', label: 'Tetradic (Square)' },
+    { key: 'shades', label: 'Shades & Tints' },
+  ];
+
+  const { h, s, l } = hexToHSL(seed);
+  const cssVars = `--color-base: ${seed};\n` +
+    sections.slice(0, 5).map(sec =>
+      palette[sec.key].map((c, i) => `--${sec.key}-${i}: ${c.hex};`).join('\n')
+    ).join('\n');
+
+  return (
+    <div>
+      <div className="palette-section">
+        <div className="palette-controls">
+          <div className="palette-seed">
+            <input type="color" className="palette-color-input" value={seed} onChange={e => handlePickerChange(e.target.value)} />
+            <input type="text" className="palette-hex-input" value={hexInput} maxLength={7}
+              onChange={e => handleHexChange(e.target.value)}
+              onBlur={() => setHexInput(seed)} />
+          </div>
+          <div className="calc-btn" onClick={randomize} style={{padding:'10px 16px', fontSize:13}}>Random</div>
+        </div>
+        <div style={{fontSize:12, fontFamily:'var(--font-mono)', color:'var(--text-muted)'}}>
+          HSL: {h}° {s}% {l}%
+        </div>
+      </div>
+
+      {sections.map(sec => (
+        <div className="palette-section" key={sec.key}>
+          <div className="palette-row-label">{sec.label}</div>
+          <div className="palette-swatches">
+            {palette[sec.key].map((c, i) => (
+              <PaletteSwatch key={`${sec.key}-${i}`} color={c} />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <div className="palette-section">
+        <div className="palette-row-label">CSS Variables (click to copy)</div>
+        <div className="palette-export" onClick={() => { navigator.clipboard?.writeText(cssVars); }}>
+          {cssVars}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
 // PLACEHOLDER TOOL (coming soon)
 // ─────────────────────────────────────────────
 function PlaceholderTool({ tool }) {
@@ -2274,6 +2464,7 @@ function App() {
             {activeTool?.type === 'temperature' && <TemperatureTool />}
             {activeTool?.type === 'timezone' && <TimezoneTool />}
             {activeTool?.type?.startsWith('calc-') && <CalcRouter type={activeTool.type} />}
+            {activeTool?.type === 'gen-palette' && <GenPalette />}
             {activeTool?.type === 'placeholder' && <PlaceholderTool tool={activeTool} />}
           </div>
         </div>
