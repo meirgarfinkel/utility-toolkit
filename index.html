@@ -814,13 +814,14 @@ const TOOL_REGISTRY = [
   { id: 'color-convert', name: 'Color Codes', icon: '🎨', category: 'Converters', type: 'placeholder' },
   { id: 'number-base', name: 'Number Bases', icon: '🔢', category: 'Converters', type: 'placeholder' },
 
-  { id: 'basic-calc', name: 'Basic Arithmetic', icon: '🧮', category: 'Calculators', type: 'placeholder' },
-  { id: 'percentage', name: 'Percentage / Tip / Tax', icon: '💵', category: 'Calculators', type: 'placeholder' },
-  { id: 'bmi', name: 'BMI Calculator', icon: '🏋️', category: 'Calculators', type: 'placeholder' },
-  { id: 'loan', name: 'Loan / Mortgage', icon: '🏠', category: 'Calculators', type: 'placeholder' },
-  { id: 'date-diff', name: 'Date Difference', icon: '📅', category: 'Calculators', type: 'placeholder' },
-  { id: 'age', name: 'Age Calculator', icon: '🎂', category: 'Calculators', type: 'placeholder' },
-  { id: 'fuel', name: 'Fuel Consumption', icon: '⛽', category: 'Calculators', type: 'placeholder' },
+  { id: 'basic-calc', name: 'Basic Arithmetic', icon: '🧮', category: 'Calculators', type: 'calc-basic' },
+  { id: 'percentage', name: 'Percentage / Tip / Tax', icon: '💵', category: 'Calculators', type: 'calc-percentage' },
+  { id: 'bmi', name: 'BMI Calculator', icon: '🏋️', category: 'Calculators', type: 'calc-bmi' },
+  { id: 'loan', name: 'Loan / Mortgage', icon: '🏠', category: 'Calculators', type: 'calc-loan' },
+  { id: 'date-diff', name: 'Date Difference', icon: '📅', category: 'Calculators', type: 'calc-datediff' },
+  { id: 'age', name: 'Age Calculator', icon: '🎂', category: 'Calculators', type: 'calc-age' },
+  { id: 'pregnancy', name: 'Pregnancy Calculator', icon: '🤰', category: 'Calculators', type: 'calc-pregnancy' },
+  { id: 'fuel', name: 'Fuel Consumption', icon: '⛽', category: 'Calculators', type: 'calc-fuel' },
 
   { id: 'char-count', name: 'Character Counter', icon: '🔤', category: 'Text Tools', type: 'placeholder' },
   { id: 'case-convert', name: 'Case Converter', icon: 'Aa', category: 'Text Tools', type: 'placeholder' },
@@ -844,7 +845,7 @@ const TOOL_REGISTRY = [
   { id: 'world-clock', name: 'World Clock', icon: '🌐', category: 'Date & Time', type: 'placeholder' },
 
   { id: 'regex', name: 'Regex Tester', icon: '.*', category: 'Dev Tools', type: 'placeholder' },
-  { id: 'html-entity', name: 'HTML Entities', icon: '<>', category: 'Dev Tools', type: 'placeholder' },
+  { id: 'html-entity', name: 'HTML Entities', icon: '&amp;', category: 'Dev Tools', type: 'placeholder' },
   { id: 'css-units', name: 'CSS Unit Converter', icon: 'px', category: 'Dev Tools', type: 'placeholder' },
   { id: 'markdown', name: 'Markdown Preview', icon: 'M↓', category: 'Dev Tools', type: 'placeholder' },
   { id: 'jwt', name: 'JWT Decoder', icon: '🎟️', category: 'Dev Tools', type: 'placeholder' },
@@ -1398,6 +1399,696 @@ function TimezoneTool() {
 }
 
 // ─────────────────────────────────────────────
+// CALCULATOR CSS (injected once)
+// ─────────────────────────────────────────────
+(() => {
+  const s = document.createElement('style');
+  s.textContent = `
+.calc-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; animation: fadeUp 0.3s ease; }
+.calc-card + .calc-card { margin-top: 16px; }
+.calc-row { display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-end; flex-wrap: wrap; }
+.calc-field { flex: 1; min-width: 120px; }
+.calc-field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); margin-bottom: 6px; }
+.calc-field input, .calc-field select { width: 100%; padding: 10px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-mono); font-size: 15px; outline: none; transition: border-color var(--transition); }
+.calc-field input:focus, .calc-field select:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--accent-dim); }
+.calc-field input::placeholder { color: var(--text-muted); font-size: 13px; }
+.calc-field select { font-family: var(--font-sans); cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a7a90' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+.calc-field select option { background: var(--bg-card); }
+.calc-result-box { background: rgba(0,229,160,0.04); border: 1px solid var(--accent-dim); border-radius: var(--radius); padding: 20px; text-align: center; margin-top: 4px; }
+.calc-result-big { font-family: var(--font-mono); font-size: 28px; font-weight: 700; color: var(--accent); }
+.calc-result-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 1px; }
+.calc-result-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(42,42,58,0.5); font-size: 14px; }
+.calc-result-row:last-child { border-bottom: none; }
+.calc-result-row .rr-label { color: var(--text-secondary); }
+.calc-result-row .rr-value { color: var(--text-primary); font-weight: 600; font-family: var(--font-mono); }
+.calc-btn { padding: 10px 20px; background: var(--accent); color: var(--bg-root); font-weight: 600; border: none; border-radius: var(--radius-sm); cursor: pointer; font-family: var(--font-sans); font-size: 14px; transition: opacity var(--transition); }
+.calc-btn:hover { opacity: 0.85; }
+.calc-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.calc-tab { padding: 8px 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all var(--transition); font-family: var(--font-sans); }
+.calc-tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.calc-display { font-family: var(--font-mono); font-size: 32px; font-weight: 600; color: var(--text-primary); text-align: right; padding: 16px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 12px; min-height: 64px; display: flex; align-items: center; justify-content: flex-end; word-break: break-all; }
+.calc-keypad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.calc-key { padding: 14px; font-size: 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-input); color: var(--text-primary); cursor: pointer; font-family: var(--font-mono); text-align: center; transition: all 100ms ease; user-select: none; }
+.calc-key:hover { background: var(--accent-dim); border-color: var(--accent); }
+.calc-key:active { transform: scale(0.95); }
+.calc-key.op { color: var(--accent); font-weight: 600; }
+.calc-key.wide { grid-column: span 2; }
+.calc-key.accent { background: var(--accent); color: var(--bg-root); font-weight: 700; border-color: var(--accent); }
+.calc-key.accent:hover { opacity: 0.85; }
+.calc-timeline { position: relative; padding-left: 24px; margin-top: 16px; }
+.calc-timeline::before { content: ''; position: absolute; left: 7px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.calc-tl-item { position: relative; padding-bottom: 20px; }
+.calc-tl-item:last-child { padding-bottom: 0; }
+.calc-tl-dot { position: absolute; left: -21px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--bg-card); border: 2px solid var(--accent); }
+.calc-tl-dot.past { background: var(--accent); }
+.calc-tl-dot.current { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.calc-tl-date { font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); }
+.calc-tl-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-top: 2px; }
+.calc-tl-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  `;
+  document.head.appendChild(s);
+})();
+
+// ─────────────────────────────────────────────
+// BASIC ARITHMETIC CALCULATOR
+// ─────────────────────────────────────────────
+function CalcBasic() {
+  const [display, setDisplay] = useState('0');
+  const [prev, setPrev] = useState(null);
+  const [op, setOp] = useState(null);
+  const [fresh, setFresh] = useState(true);
+
+  const input = (d) => {
+    if (fresh) { setDisplay(d === '.' ? '0.' : d); setFresh(false); }
+    else {
+      if (d === '.' && display.includes('.')) return;
+      setDisplay(display === '0' && d !== '.' ? d : display + d);
+    }
+  };
+
+  const doOp = (nextOp) => {
+    const cur = parseFloat(display);
+    if (prev !== null && op && !fresh) {
+      let res;
+      if (op === '+') res = prev + cur;
+      else if (op === '−') res = prev - cur;
+      else if (op === '×') res = prev * cur;
+      else if (op === '÷') res = cur !== 0 ? prev / cur : 'Error';
+      if (res === 'Error') { setDisplay('Error'); setPrev(null); setOp(null); setFresh(true); return; }
+      setDisplay(String(parseFloat(res.toFixed(10))));
+      setPrev(res);
+    } else { setPrev(cur); }
+    setOp(nextOp);
+    setFresh(true);
+  };
+
+  const equals = () => { doOp(null); setOp(null); };
+  const clear = () => { setDisplay('0'); setPrev(null); setOp(null); setFresh(true); };
+  const percent = () => { setDisplay(String(parseFloat(display) / 100)); setFresh(true); };
+  const negate = () => { setDisplay(String(parseFloat(display) * -1)); };
+
+  const keys = [
+    { l: 'AC', a: clear }, { l: '±', a: negate }, { l: '%', a: percent }, { l: '÷', a: () => doOp('÷'), c: 'op' },
+    { l: '7', a: () => input('7') }, { l: '8', a: () => input('8') }, { l: '9', a: () => input('9') }, { l: '×', a: () => doOp('×'), c: 'op' },
+    { l: '4', a: () => input('4') }, { l: '5', a: () => input('5') }, { l: '6', a: () => input('6') }, { l: '−', a: () => doOp('−'), c: 'op' },
+    { l: '1', a: () => input('1') }, { l: '2', a: () => input('2') }, { l: '3', a: () => input('3') }, { l: '+', a: () => doOp('+'), c: 'op' },
+    { l: '0', a: () => input('0'), c: 'wide' }, { l: '.', a: () => input('.') }, { l: '=', a: equals, c: 'accent' },
+  ];
+
+  return (
+    <div className="calc-card">
+      <div className="calc-display">{display}</div>
+      <div className="calc-keypad">
+        {keys.map((k, i) => (
+          <div key={i} className={`calc-key ${k.c || ''}`} onClick={k.a}>{k.l}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// PERCENTAGE / TIP / TAX CALCULATOR
+// ─────────────────────────────────────────────
+function CalcPercentage() {
+  const [tab, setTab] = useState('tip');
+  const [amount, setAmount] = useState('');
+  const [pct, setPct] = useState('');
+  const [people, setPeople] = useState('1');
+
+  const amt = parseFloat(amount) || 0;
+  const p = parseFloat(pct) || 0;
+  const ppl = Math.max(1, parseInt(people) || 1);
+
+  let results = [];
+  if (tab === 'tip') {
+    const tipAmt = amt * p / 100;
+    const total = amt + tipAmt;
+    results = [
+      { label: 'Tip amount', value: `$${tipAmt.toFixed(2)}` },
+      { label: 'Total', value: `$${total.toFixed(2)}` },
+      ...(ppl > 1 ? [{ label: `Per person (${ppl})`, value: `$${(total / ppl).toFixed(2)}` }] : []),
+    ];
+  } else if (tab === 'discount') {
+    const disc = amt * p / 100;
+    results = [
+      { label: 'You save', value: `$${disc.toFixed(2)}` },
+      { label: 'Final price', value: `$${(amt - disc).toFixed(2)}` },
+    ];
+  } else {
+    const tax = amt * p / 100;
+    results = [
+      { label: 'Tax amount', value: `$${tax.toFixed(2)}` },
+      { label: 'Total with tax', value: `$${(amt + tax).toFixed(2)}` },
+    ];
+  }
+
+  return (
+    <div className="calc-card">
+      <div className="calc-tabs">
+        {[['tip','Tip'],['discount','Discount'],['tax','Tax']].map(([k,v]) => (
+          <div key={k} className={`calc-tab ${tab===k?'active':''}`} onClick={() => setTab(k)}>{v}</div>
+        ))}
+      </div>
+      <div className="calc-row">
+        <div className="calc-field">
+          <label>Amount ($)</label>
+          <input type="text" inputMode="decimal" placeholder="0.00" value={amount}
+            onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setAmount(e.target.value); }} />
+        </div>
+        <div className="calc-field">
+          <label>{tab === 'tip' ? 'Tip' : tab === 'discount' ? 'Discount' : 'Tax'} %</label>
+          <input type="text" inputMode="decimal" placeholder={tab==='tip'?'18':'10'} value={pct}
+            onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setPct(e.target.value); }} />
+        </div>
+        {tab === 'tip' && (
+          <div className="calc-field" style={{maxWidth: 100}}>
+            <label>People</label>
+            <input type="text" inputMode="numeric" placeholder="1" value={people}
+              onChange={e => { if (/^\d*$/.test(e.target.value)) setPeople(e.target.value); }} />
+          </div>
+        )}
+      </div>
+      {amt > 0 && p > 0 && (
+        <div className="calc-result-box" style={{textAlign:'left', padding: '16px 20px'}}>
+          {results.map(r => (
+            <div className="calc-result-row" key={r.label}>
+              <span className="rr-label">{r.label}</span>
+              <span className="rr-value">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// BMI CALCULATOR
+// ─────────────────────────────────────────────
+function CalcBMI() {
+  const [sys, setSys] = useState('imperial');
+  const [weight, setWeight] = useState('');
+  const [heightFt, setHeightFt] = useState('');
+  const [heightIn, setHeightIn] = useState('');
+  const [heightCm, setHeightCm] = useState('');
+
+  let bmi = null;
+  if (sys === 'imperial') {
+    const w = parseFloat(weight);
+    const h = (parseFloat(heightFt) || 0) * 12 + (parseFloat(heightIn) || 0);
+    if (w > 0 && h > 0) bmi = (w / (h * h)) * 703;
+  } else {
+    const w = parseFloat(weight);
+    const h = parseFloat(heightCm);
+    if (w > 0 && h > 0) bmi = w / ((h / 100) ** 2);
+  }
+
+  const category = bmi === null ? '' : bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal' : bmi < 30 ? 'Overweight' : 'Obese';
+  const catColor = bmi === null ? '' : bmi < 18.5 ? '#5cb8ff' : bmi < 25 ? '#00e5a0' : bmi < 30 ? '#ffb347' : '#ff5c6a';
+
+  return (
+    <div className="calc-card">
+      <div className="calc-tabs">
+        <div className={`calc-tab ${sys==='imperial'?'active':''}`} onClick={() => setSys('imperial')}>Imperial</div>
+        <div className={`calc-tab ${sys==='metric'?'active':''}`} onClick={() => setSys('metric')}>Metric</div>
+      </div>
+      <div className="calc-row">
+        <div className="calc-field">
+          <label>Weight ({sys==='imperial'?'lbs':'kg'})</label>
+          <input type="text" inputMode="decimal" placeholder="0" value={weight}
+            onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setWeight(e.target.value); }} />
+        </div>
+        {sys === 'imperial' ? (
+          <>
+            <div className="calc-field">
+              <label>Height (ft)</label>
+              <input type="text" inputMode="numeric" placeholder="5" value={heightFt}
+                onChange={e => { if (/^\d*$/.test(e.target.value)) setHeightFt(e.target.value); }} />
+            </div>
+            <div className="calc-field">
+              <label>Height (in)</label>
+              <input type="text" inputMode="decimal" placeholder="10" value={heightIn}
+                onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setHeightIn(e.target.value); }} />
+            </div>
+          </>
+        ) : (
+          <div className="calc-field">
+            <label>Height (cm)</label>
+            <input type="text" inputMode="decimal" placeholder="175" value={heightCm}
+              onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setHeightCm(e.target.value); }} />
+          </div>
+        )}
+      </div>
+      {bmi !== null && (
+        <div className="calc-result-box">
+          <div className="calc-result-big">{bmi.toFixed(1)}</div>
+          <div className="calc-result-label" style={{color: catColor}}>{category}</div>
+          <div style={{marginTop: 12, display:'flex', gap: 4, justifyContent:'center'}}>
+            {[{l:'Underweight',r:[0,18.5],c:'#5cb8ff'},{l:'Normal',r:[18.5,25],c:'#00e5a0'},{l:'Overweight',r:[25,30],c:'#ffb347'},{l:'Obese',r:[30,100],c:'#ff5c6a'}].map(b => (
+              <div key={b.l} style={{flex:b.r[1]-b.r[0], height: 6, borderRadius: 3, background: bmi>=b.r[0]&&bmi<b.r[1] ? b.c : 'var(--border)', opacity: bmi>=b.r[0]&&bmi<b.r[1]?1:0.4}} title={b.l} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// LOAN / MORTGAGE / COMPOUND INTEREST
+// ─────────────────────────────────────────────
+function CalcLoan() {
+  const [tab, setTab] = useState('mortgage');
+  const [principal, setPrincipal] = useState('');
+  const [rate, setRate] = useState('');
+  const [years, setYears] = useState('');
+  const [downPay, setDownPay] = useState('');
+
+  const P = parseFloat(principal) || 0;
+  const r = (parseFloat(rate) || 0) / 100;
+  const n = parseFloat(years) || 0;
+  const dp = parseFloat(downPay) || 0;
+
+  let results = [];
+  if (tab === 'mortgage' || tab === 'loan') {
+    const loanAmt = tab === 'mortgage' ? Math.max(0, P - dp) : P;
+    const monthlyRate = r / 12;
+    const numPayments = n * 12;
+    if (loanAmt > 0 && r > 0 && n > 0) {
+      const payment = loanAmt * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+      const totalPaid = payment * numPayments;
+      const totalInterest = totalPaid - loanAmt;
+      results = [
+        { label: 'Monthly payment', value: `$${payment.toFixed(2)}` },
+        { label: 'Total paid', value: `$${totalPaid.toFixed(2)}` },
+        { label: 'Total interest', value: `$${totalInterest.toFixed(2)}` },
+        ...(tab === 'mortgage' ? [{ label: 'Loan amount', value: `$${loanAmt.toFixed(2)}` }] : []),
+      ];
+    }
+  } else {
+    // compound interest
+    if (P > 0 && n > 0) {
+      const total = P * Math.pow(1 + r, n);
+      const interest = total - P;
+      results = [
+        { label: 'Final amount', value: `$${total.toFixed(2)}` },
+        { label: 'Interest earned', value: `$${interest.toFixed(2)}` },
+        { label: `Growth (${n}yr)`, value: `${((total/P - 1) * 100).toFixed(1)}%` },
+      ];
+    }
+  }
+
+  return (
+    <div className="calc-card">
+      <div className="calc-tabs">
+        {[['mortgage','Mortgage'],['loan','Loan'],['compound','Compound']].map(([k,v]) => (
+          <div key={k} className={`calc-tab ${tab===k?'active':''}`} onClick={() => setTab(k)}>{v}</div>
+        ))}
+      </div>
+      <div className="calc-row">
+        <div className="calc-field">
+          <label>{tab==='compound'?'Principal ($)':'Amount ($)'}</label>
+          <input type="text" inputMode="decimal" placeholder="250000" value={principal}
+            onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setPrincipal(e.target.value); }} />
+        </div>
+        <div className="calc-field">
+          <label>Rate (% /yr)</label>
+          <input type="text" inputMode="decimal" placeholder="6.5" value={rate}
+            onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setRate(e.target.value); }} />
+        </div>
+      </div>
+      <div className="calc-row">
+        <div className="calc-field">
+          <label>Years</label>
+          <input type="text" inputMode="decimal" placeholder="30" value={years}
+            onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setYears(e.target.value); }} />
+        </div>
+        {tab === 'mortgage' && (
+          <div className="calc-field">
+            <label>Down payment ($)</label>
+            <input type="text" inputMode="decimal" placeholder="50000" value={downPay}
+              onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setDownPay(e.target.value); }} />
+          </div>
+        )}
+      </div>
+      {results.length > 0 && (
+        <div className="calc-result-box" style={{textAlign:'left', padding: '16px 20px'}}>
+          <div className="calc-result-big" style={{textAlign:'center', marginBottom:12}}>{results[0].value}</div>
+          <div className="calc-result-label" style={{textAlign:'center', marginBottom:12}}>{results[0].label}</div>
+          {results.slice(1).map(r => (
+            <div className="calc-result-row" key={r.label}>
+              <span className="rr-label">{r.label}</span>
+              <span className="rr-value">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// DATE DIFFERENCE CALCULATOR
+// ─────────────────────────────────────────────
+function CalcDateDiff() {
+  const today = new Date().toISOString().split('T')[0];
+  const [date1, setDate1] = useState(today);
+  const [date2, setDate2] = useState('');
+
+  let results = null;
+  if (date1 && date2) {
+    const d1 = new Date(date1 + 'T00:00:00');
+    const d2 = new Date(date2 + 'T00:00:00');
+    const diffMs = Math.abs(d2 - d1);
+    const totalDays = Math.round(diffMs / 86400000);
+    const totalWeeks = (totalDays / 7).toFixed(1);
+    const totalMonths = (totalDays / 30.4375).toFixed(1);
+    const totalYears = (totalDays / 365.25).toFixed(2);
+
+    // Breakdown: years, months, days
+    let start = d1 < d2 ? d1 : d2;
+    let end = d1 < d2 ? d2 : d1;
+    let yrs = end.getFullYear() - start.getFullYear();
+    let mos = end.getMonth() - start.getMonth();
+    let dys = end.getDate() - start.getDate();
+    if (dys < 0) { mos--; const prev = new Date(end.getFullYear(), end.getMonth(), 0); dys += prev.getDate(); }
+    if (mos < 0) { yrs--; mos += 12; }
+
+    results = { totalDays, totalWeeks, totalMonths, totalYears, yrs, mos, dys };
+  }
+
+  return (
+    <div className="calc-card">
+      <div className="calc-row">
+        <div className="calc-field">
+          <label>Start date</label>
+          <input type="date" value={date1} onChange={e => setDate1(e.target.value)} style={{colorScheme:'dark'}} />
+        </div>
+        <div className="calc-field">
+          <label>End date</label>
+          <input type="date" value={date2} onChange={e => setDate2(e.target.value)} style={{colorScheme:'dark'}} />
+        </div>
+      </div>
+      {results && (
+        <div className="calc-result-box" style={{textAlign:'left', padding:'16px 20px'}}>
+          <div className="calc-result-big" style={{textAlign:'center', marginBottom:4}}>
+            {results.yrs > 0 ? `${results.yrs}y ` : ''}{results.mos > 0 ? `${results.mos}m ` : ''}{results.dys}d
+          </div>
+          <div className="calc-result-label" style={{textAlign:'center', marginBottom:14}}>Duration</div>
+          {[
+            { label: 'Total days', value: results.totalDays.toLocaleString() },
+            { label: 'Total weeks', value: results.totalWeeks },
+            { label: 'Total months', value: results.totalMonths },
+            { label: 'Total years', value: results.totalYears },
+          ].map(r => (
+            <div className="calc-result-row" key={r.label}>
+              <span className="rr-label">{r.label}</span>
+              <span className="rr-value">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// AGE CALCULATOR
+// ─────────────────────────────────────────────
+function CalcAge() {
+  const [dob, setDob] = useState('');
+  const now = new Date();
+
+  let results = null;
+  if (dob) {
+    const birth = new Date(dob + 'T00:00:00');
+    if (birth <= now) {
+      let years = now.getFullYear() - birth.getFullYear();
+      let months = now.getMonth() - birth.getMonth();
+      let days = now.getDate() - birth.getDate();
+      if (days < 0) { months--; const prev = new Date(now.getFullYear(), now.getMonth(), 0); days += prev.getDate(); }
+      if (months < 0) { years--; months += 12; }
+
+      const totalDays = Math.floor((now - birth) / 86400000);
+      const totalWeeks = Math.floor(totalDays / 7);
+      const totalMonths = years * 12 + months;
+      const totalHours = totalDays * 24;
+
+      // Next birthday
+      let nextBday = new Date(now.getFullYear(), birth.getMonth(), birth.getDate());
+      if (nextBday <= now) nextBday = new Date(now.getFullYear() + 1, birth.getMonth(), birth.getDate());
+      const daysToNext = Math.ceil((nextBday - now) / 86400000);
+
+      results = { years, months, days, totalDays, totalWeeks, totalMonths, totalHours, daysToNext, nextAge: years + (daysToNext > 0 ? 1 : 0) };
+    }
+  }
+
+  return (
+    <div className="calc-card">
+      <div className="calc-row">
+        <div className="calc-field">
+          <label>Date of birth</label>
+          <input type="date" value={dob} onChange={e => setDob(e.target.value)} style={{colorScheme:'dark'}} />
+        </div>
+      </div>
+      {results && (
+        <>
+          <div className="calc-result-box">
+            <div className="calc-result-big">{results.years}</div>
+            <div className="calc-result-label">Years old</div>
+            <div style={{color:'var(--text-secondary)', fontSize:14, marginTop:8, fontFamily:'var(--font-mono)'}}>
+              {results.years}y {results.months}m {results.days}d
+            </div>
+          </div>
+          <div className="calc-card" style={{marginTop:16, padding:'16px 20px'}}>
+            {[
+              { label: 'Total days alive', value: results.totalDays.toLocaleString() },
+              { label: 'Total weeks', value: results.totalWeeks.toLocaleString() },
+              { label: 'Total months', value: results.totalMonths.toLocaleString() },
+              { label: 'Total hours', value: results.totalHours.toLocaleString() },
+              { label: `Days until turning ${results.nextAge}`, value: results.daysToNext.toLocaleString() },
+            ].map(r => (
+              <div className="calc-result-row" key={r.label}>
+                <span className="rr-label">{r.label}</span>
+                <span className="rr-value">{r.value}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// PREGNANCY CALCULATOR
+// ─────────────────────────────────────────────
+function CalcPregnancy() {
+  const [method, setMethod] = useState('lmp');
+  const [dateVal, setDateVal] = useState('');
+
+  const TRIMESTERS = [
+    { week: 0, title: 'Conception', desc: 'Fertilization occurs' },
+    { week: 4, title: 'Embryo implants', desc: 'Missed period, hCG detectable' },
+    { week: 8, title: 'Heartbeat detectable', desc: 'All major organs forming' },
+    { week: 12, title: 'End of 1st trimester', desc: 'Risk of miscarriage drops significantly' },
+    { week: 16, title: 'Baby can hear', desc: 'Gender may be visible on ultrasound' },
+    { week: 20, title: 'Anatomy scan', desc: 'Halfway point — baby is ~10 in' },
+    { week: 24, title: 'Viability milestone', desc: 'Lungs developing surfactant' },
+    { week: 28, title: '3rd trimester begins', desc: 'Baby opens eyes, dreams begin' },
+    { week: 32, title: 'Baby gains weight rapidly', desc: 'Practice breathing starts' },
+    { week: 36, title: 'Full-term approaching', desc: 'Baby moves into head-down position' },
+    { week: 37, title: 'Early term', desc: 'Considered early-term from here' },
+    { week: 40, title: 'Due date', desc: 'Estimated delivery date (EDD)' },
+  ];
+
+  let data = null;
+  if (dateVal) {
+    const inputDate = new Date(dateVal + 'T00:00:00');
+    let lmpDate;
+    if (method === 'lmp') { lmpDate = inputDate; }
+    else if (method === 'conception') { lmpDate = new Date(inputDate); lmpDate.setDate(lmpDate.getDate() - 14); }
+    else { lmpDate = new Date(inputDate); lmpDate.setDate(lmpDate.getDate() - 280); }
+
+    const edd = new Date(lmpDate);
+    edd.setDate(edd.getDate() + 280);
+
+    const now = new Date();
+    const daysSinceLMP = Math.floor((now - lmpDate) / 86400000);
+    const currentWeek = Math.max(0, Math.floor(daysSinceLMP / 7));
+    const currentDay = Math.max(0, daysSinceLMP % 7);
+    const daysLeft = Math.max(0, Math.ceil((edd - now) / 86400000));
+    const trimester = currentWeek < 13 ? '1st' : currentWeek < 27 ? '2nd' : '3rd';
+    const progress = Math.min(100, Math.max(0, (daysSinceLMP / 280) * 100));
+
+    const conceptionDate = new Date(lmpDate);
+    conceptionDate.setDate(conceptionDate.getDate() + 14);
+
+    data = { lmpDate, edd, conceptionDate, currentWeek, currentDay, daysLeft, trimester, progress };
+  }
+
+  const fmtDate = (d) => d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+
+  return (
+    <div className="calc-card">
+      <div className="calc-tabs">
+        {[['lmp','Last Period'],['conception','Conception'],['due','Due Date']].map(([k,v]) => (
+          <div key={k} className={`calc-tab ${method===k?'active':''}`} onClick={() => setMethod(k)}>{v}</div>
+        ))}
+      </div>
+      <div className="calc-row">
+        <div className="calc-field">
+          <label>{method==='lmp'?'First day of last period':method==='conception'?'Conception date':'Known due date'}</label>
+          <input type="date" value={dateVal} onChange={e => setDateVal(e.target.value)} style={{colorScheme:'dark'}} />
+        </div>
+      </div>
+      {data && (
+        <>
+          <div className="calc-result-box">
+            <div className="calc-result-big">{data.currentWeek}w {data.currentDay}d</div>
+            <div className="calc-result-label">{data.trimester} trimester</div>
+            <div style={{marginTop:12, background:'var(--border)', borderRadius:4, height:8, overflow:'hidden'}}>
+              <div style={{width:`${data.progress}%`, height:'100%', background:'var(--accent)', borderRadius:4, transition:'width 0.3s ease'}} />
+            </div>
+            <div style={{fontSize:11, color:'var(--text-muted)', marginTop:6, fontFamily:'var(--font-mono)'}}>
+              {data.progress.toFixed(1)}% complete — {data.daysLeft} days remaining
+            </div>
+          </div>
+          <div className="calc-card" style={{marginTop:16, padding:'16px 20px'}}>
+            {[
+              { label: 'Due date (EDD)', value: fmtDate(data.edd) },
+              { label: 'Conception (est.)', value: fmtDate(data.conceptionDate) },
+              { label: 'LMP date', value: fmtDate(data.lmpDate) },
+            ].map(r => (
+              <div className="calc-result-row" key={r.label}>
+                <span className="rr-label">{r.label}</span>
+                <span className="rr-value">{r.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="calc-card" style={{marginTop:16, padding:'16px 20px'}}>
+            <div style={{fontSize:11, fontWeight:600, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:1, fontFamily:'var(--font-mono)', marginBottom:12}}>Milestones</div>
+            <div className="calc-timeline">
+              {TRIMESTERS.map(m => {
+                const mDate = new Date(data.lmpDate);
+                mDate.setDate(mDate.getDate() + m.week * 7);
+                const isPast = data.currentWeek > m.week;
+                const isCurrent = data.currentWeek >= m.week && data.currentWeek < (m.week + 4);
+                return (
+                  <div className="calc-tl-item" key={m.week}>
+                    <div className={`calc-tl-dot ${isPast ? 'past' : ''} ${isCurrent && !isPast ? 'current' : ''}`} />
+                    <div className="calc-tl-date">Week {m.week} — {fmtDate(mDate)}</div>
+                    <div className="calc-tl-title">{m.title}</div>
+                    <div className="calc-tl-desc">{m.desc}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// FUEL CONSUMPTION CALCULATOR
+// ─────────────────────────────────────────────
+function CalcFuel() {
+  const [tab, setTab] = useState('mpg');
+  const [distance, setDistance] = useState('');
+  const [fuel, setFuel] = useState('');
+  const [price, setPrice] = useState('');
+
+  const d = parseFloat(distance) || 0;
+  const f = parseFloat(fuel) || 0;
+  const p = parseFloat(price) || 0;
+
+  let results = [];
+  if (d > 0 && f > 0) {
+    if (tab === 'mpg') {
+      const mpg = d / f;
+      const lper100 = 235.215 / mpg;
+      const kpl = 100 / lper100;
+      results = [
+        { label: 'Miles per gallon', value: mpg.toFixed(2) },
+        { label: 'Liters per 100km', value: lper100.toFixed(2) },
+        { label: 'Km per liter', value: kpl.toFixed(2) },
+      ];
+      if (p > 0) results.push({ label: 'Cost per mile', value: `$${(p / mpg).toFixed(3)}` });
+    } else {
+      const lper100 = (f / d) * 100;
+      const mpg = 235.215 / lper100;
+      const kpl = d / f;
+      results = [
+        { label: 'L per 100 km', value: lper100.toFixed(2) },
+        { label: 'Km per liter', value: kpl.toFixed(2) },
+        { label: 'MPG equivalent', value: mpg.toFixed(2) },
+      ];
+      if (p > 0) results.push({ label: 'Cost per km', value: `$${((f * p) / d).toFixed(3)}` });
+    }
+  }
+
+  return (
+    <div className="calc-card">
+      <div className="calc-tabs">
+        <div className={`calc-tab ${tab==='mpg'?'active':''}`} onClick={() => setTab('mpg')}>Imperial (mi/gal)</div>
+        <div className={`calc-tab ${tab==='metric'?'active':''}`} onClick={() => setTab('metric')}>Metric (km/L)</div>
+      </div>
+      <div className="calc-row">
+        <div className="calc-field">
+          <label>Distance ({tab==='mpg'?'miles':'km'})</label>
+          <input type="text" inputMode="decimal" placeholder="0" value={distance}
+            onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setDistance(e.target.value); }} />
+        </div>
+        <div className="calc-field">
+          <label>Fuel used ({tab==='mpg'?'gallons':'liters'})</label>
+          <input type="text" inputMode="decimal" placeholder="0" value={fuel}
+            onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setFuel(e.target.value); }} />
+        </div>
+        <div className="calc-field">
+          <label>Price per {tab==='mpg'?'gallon':'liter'} ($)</label>
+          <input type="text" inputMode="decimal" placeholder="optional" value={price}
+            onChange={e => { if (/^\d*\.?\d*$/.test(e.target.value)) setPrice(e.target.value); }} />
+        </div>
+      </div>
+      {results.length > 0 && (
+        <div className="calc-result-box" style={{textAlign:'left', padding:'16px 20px'}}>
+          <div className="calc-result-big" style={{textAlign:'center', marginBottom:4}}>{results[0].value}</div>
+          <div className="calc-result-label" style={{textAlign:'center', marginBottom:14}}>{results[0].label}</div>
+          {results.slice(1).map(r => (
+            <div className="calc-result-row" key={r.label}>
+              <span className="rr-label">{r.label}</span>
+              <span className="rr-value">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// CALCULATOR ROUTER
+// ─────────────────────────────────────────────
+const CALC_COMPONENTS = {
+  'calc-basic': CalcBasic,
+  'calc-percentage': CalcPercentage,
+  'calc-bmi': CalcBMI,
+  'calc-loan': CalcLoan,
+  'calc-datediff': CalcDateDiff,
+  'calc-age': CalcAge,
+  'calc-pregnancy': CalcPregnancy,
+  'calc-fuel': CalcFuel,
+};
+
+function CalcRouter({ type }) {
+  const Comp = CALC_COMPONENTS[type];
+  return Comp ? <Comp /> : null;
+}
+
+// ─────────────────────────────────────────────
 // PLACEHOLDER TOOL (coming soon)
 // ─────────────────────────────────────────────
 function PlaceholderTool({ tool }) {
@@ -1518,6 +2209,7 @@ function App() {
             {activeTool?.type === 'converter' && <ConverterTool tool={activeTool} />}
             {activeTool?.type === 'temperature' && <TemperatureTool />}
             {activeTool?.type === 'timezone' && <TimezoneTool />}
+            {activeTool?.type?.startsWith('calc-') && <CalcRouter type={activeTool.type} />}
             {activeTool?.type === 'placeholder' && <PlaceholderTool tool={activeTool} />}
           </div>
         </div>
