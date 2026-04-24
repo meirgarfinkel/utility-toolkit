@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ToolVault</title>
+<link rel="manifest" href="manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg-root: #0a0a0f;
+  --bg-surface: #12121a;
+  --bg-card: #1a1a26;
+  --bg-input: #0e0e16;
+  --border: #2a2a3a;
+  --border-focus: #00e5a0;
+  --text-primary: #e8e8f0;
+  --text-secondary: #7a7a90;
+  --text-muted: #4a4a5e;
+  --accent: #00e5a0;
+  --accent-dim: rgba(0, 229, 160, 0.12);
+  --accent-glow: rgba(0, 229, 160, 0.25);
+  --danger: #ff5c6a;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'DM Sans', sans-serif;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --transition: 180ms ease;
+}
+
+html, body, #root { height: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-root);
+  color: var(--text-primary);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 9px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ── Layout ── */
+.app { display: flex; height: 100vh; }
+
+.sidebar {
+  width: 300px;
+  min-width: 300px;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.sidebar-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--bg-root);
+  font-weight: 700;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.logo-tag {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  margin-left: auto;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.search-box {
+  position: relative;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 10px 12px 10px 36px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.search-box input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.search-box input::placeholder { color: var(--text-muted); }
+
+.search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.nav-category {
+  padding: 12px 20px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-family: var(--font-mono);
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  border-left: 2px solid transparent;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.nav-item:hover {
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--accent-dim);
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+.nav-item-icon {
+  font-size: 16px;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-item-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-empty {
+  padding: 24px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ── Main content ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.main-header {
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 72px;
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 20px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.main-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.main-subtitle {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.main-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+  display: flex;
+  justify-content: center;
+}
+
+.main-body-inner {
+  width: 100%;
+  max-width: 720px;
+}
+
+/* ── Welcome state ── */
+.welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.welcome-icon {
+  font-size: 56px;
+  margin-bottom: 20px;
+  filter: grayscale(0.3);
+}
+
+.welcome h2 {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.welcome p {
+  color: var(--text-muted);
+  font-size: 14px;
+  max-width: 320px;
+  line-height: 1.6;
+}
+
+/* ── Converter tool ── */
+.converter {
+  animation: fadeUp 0.3s ease;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.converter-grid {
+  display: grid;
+  grid-template-columns: 1fr 48px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.converter-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.converter-panel label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+  margin-bottom: 8px;
+}
+
+.converter-select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a7a90' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  margin-bottom: 12px;
+  transition: border-color var(--transition);
+}
+
+.converter-select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.converter-select option {
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.converter-input {
+  width: 100%;
+  padding: 14px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color var(--transition);
+}
+
+.converter-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.converter-input::placeholder {
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.converter-input.result {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  background: rgba(0, 229, 160, 0.04);
+}
+
+.swap-btn {
+  align-self: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition);
+  margin-top: 32px;
+}
+
+.swap-btn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: rotate(180deg);
+}
+
+/* ── Quick reference table ── */
+.ref-table {
+  margin-top: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.ref-table-header {
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid var(--border);
+}
+
+.ref-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  border-bottom: 1px solid rgba(42, 42, 58, 0.5);
+  transition: background var(--transition);
+}
+
+.ref-row:last-child { border-bottom: none; }
+.ref-row:hover { background: var(--accent-dim); }
+.ref-row .unit-name { color: var(--text-secondary); }
+.ref-row .unit-value { color: var(--text-primary); font-weight: 600; }
+
+/* ── Timezone combobox ── */
+.tz-combo {
+  margin-bottom: 12px;
+}
+
+.tz-combo > label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+  margin-bottom: 8px;
+}
+
+.tz-combo-input-wrap {
+  position: relative;
+}
+
+.tz-combo-input {
+  width: 100%;
+  padding: 10px 32px 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition);
+  position: relative;
+  z-index: 2;
+}
+
+.tz-combo-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.tz-combo-input::placeholder {
+  color: var(--text-muted);
+}
+
+.tz-combo-current {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 32px;
+  bottom: 0;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  pointer-events: none;
+  z-index: 3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.tz-combo-chevron {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--text-muted);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.tz-combo-dropdown {
+  position: absolute;
+  z-index: 50;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+}
+
+.tz-combo-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 80ms ease;
+  border-bottom: 1px solid rgba(42,42,58,0.3);
+}
+
+.tz-combo-option:last-child { border-bottom: none; }
+
+.tz-combo-option.highlighted {
+  background: var(--accent-dim);
+}
+
+.tz-combo-option.selected .tz-combo-city {
+  color: var(--accent);
+}
+
+.tz-combo-city {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.tz-combo-region {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.tz-combo-empty {
+  padding: 16px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ── Timezone tool ── */
+.tz-time-display {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 600;
+  padding: 14px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.tz-time-display.accent {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+  background: rgba(0, 229, 160, 0.04);
+}
+
+.tz-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.tz-custom-label {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px !important;
+  color: var(--text-secondary) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-family: var(--font-sans) !important;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tz-custom-label input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.tz-time-input {
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color var(--transition);
+}
+
+.tz-time-input:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+.tz-offset-badge {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Sidebar overlay on mobile ── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 99;
+}
+
+/* ── PWA banner ── */
+.pwa-status {
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pwa-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    z-index: 100;
+    height: 100%;
+    transform: translateX(-100%);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay.open { display: block; }
+  .mobile-menu-btn { display: block; }
+  .main-body { padding: 20px 16px; }
+  .converter-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .swap-btn {
+    margin-top: 0;
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+  .swap-btn:hover { transform: rotate(270deg); }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useMemo, useCallback, useEffect, useRef } = React;
+
+// ─────────────────────────────────────────────
+// TOOL REGISTRY — all tools defined here
+// ─────────────────────────────────────────────
+const TOOL_REGISTRY = [
+  // ── Converters ──
+  {
+    id: 'length', name: 'Length', icon: '📏', category: 'Converters',
+    type: 'converter',
+    units: [
+      { id: 'mm', label: 'Millimeters (mm)', factor: 0.001 },
+      { id: 'cm', label: 'Centimeters (cm)', factor: 0.01 },
+      { id: 'in', label: 'Inches (in)', factor: 0.0254 },
+      { id: 'm', label: 'Meters (m)', factor: 1 },
+      { id: 'ft', label: 'Feet (ft)', factor: 0.3048 },
+      { id: 'yd', label: 'Yards (yd)', factor: 0.9144 },
+      { id: 'km', label: 'Kilometers (km)', factor: 1000 },
+      { id: 'mi', label: 'Miles (mi)', factor: 1609.344 },
+      { id: 'nmi', label: 'Nautical Miles (nmi)', factor: 1852 },
+    ],
+  },
+  {
+    id: 'weight', name: 'Weight', icon: '⚖️', category: 'Converters',
+    type: 'converter',
+    units: [
+      { id: 'mg', label: 'Milligrams (mg)', factor: 0.000001 },
+      { id: 'g', label: 'Grams (g)', factor: 0.001 },
+      { id: 'oz', label: 'Ounces (oz)', factor: 0.028349523125 },
+      { id: 'lb', label: 'Pounds (lb)', factor: 0.45359237 },
+      { id: 'kg', label: 'Kilograms (kg)', factor: 1 },
+      { id: 'st', label: 'Stone (st)', factor: 6.35029318 },
+      { id: 't', label: 'Metric Tons (t)', factor: 1000 },
+    ],
+  },
+  {
+    id: 'volume', name: 'Volume', icon: '🧪', category: 'Converters',
+    type: 'converter',
+    units: [
+      { id: 'ml', label: 'Milliliters (mL)', factor: 0.001 },
+      { id: 'tsp', label: 'Teaspoons (tsp)', factor: 0.00492892 },
+      { id: 'tbsp', label: 'Tablespoons (tbsp)', factor: 0.0147868 },
+      { id: 'fl_oz', label: 'Fluid Ounces (fl oz)', factor: 0.0295735 },
+      { id: 'cup', label: 'Cups', factor: 0.236588 },
+      { id: 'pt', label: 'Pints (pt)', factor: 0.473176 },
+      { id: 'qt', label: 'Quarts (qt)', factor: 0.946353 },
+      { id: 'l', label: 'Liters (L)', factor: 1 },
+      { id: 'gal', label: 'Gallons (gal)', factor: 3.78541 },
+    ],
+  },
+  {
+    id: 'area', name: 'Area', icon: '📐', category: 'Converters',
+    type: 'converter',
+    units: [
+      { id: 'sqmm', label: 'Square mm (mm²)', factor: 0.000001 },
+      { id: 'sqcm', label: 'Square cm (cm²)', factor: 0.0001 },
+      { id: 'sqin', label: 'Square in (in²)', factor: 0.00064516 },
+      { id: 'sqft', label: 'Square ft (ft²)', factor: 0.092903 },
+      { id: 'sqm', label: 'Square m (m²)', factor: 1 },
+      { id: 'sqyd', label: 'Square yd (yd²)', factor: 0.836127 },
+      { id: 'acre', label: 'Acres', factor: 4046.86 },
+      { id: 'ha', label: 'Hectares (ha)', factor: 10000 },
+      { id: 'sqkm', label: 'Square km (km²)', factor: 1000000 },
+      { id: 'sqmi', label: 'Square mi (mi²)', factor: 2590000 },
+    ],
+  },
+  {
+    id: 'speed', name: 'Speed', icon: '🏎️', category: 'Converters',
+    type: 'converter',
+    units: [
+      { id: 'mps', label: 'Meters/sec (m/s)', factor: 1 },
+      { id: 'kph', label: 'Km/hour (km/h)', factor: 0.277778 },
+      { id: 'mph', label: 'Miles/hour (mph)', factor: 0.44704 },
+      { id: 'knot', label: 'Knots (kn)', factor: 0.514444 },
+      { id: 'fps', label: 'Feet/sec (ft/s)', factor: 0.3048 },
+      { id: 'mach', label: 'Mach', factor: 343 },
+    ],
+  },
+  {
+    id: 'data-size', name: 'Data Size', icon: '💾', category: 'Converters',
+    type: 'converter',
+    units: [
+      { id: 'b', label: 'Bytes (B)', factor: 1 },
+      { id: 'kb', label: 'Kilobytes (KB)', factor: 1024 },
+      { id: 'mb', label: 'Megabytes (MB)', factor: 1048576 },
+      { id: 'gb', label: 'Gigabytes (GB)', factor: 1073741824 },
+      { id: 'tb', label: 'Terabytes (TB)', factor: 1099511627776 },
+      { id: 'pb', label: 'Petabytes (PB)', factor: 1125899906842624 },
+    ],
+  },
+  {
+    id: 'cooking', name: 'Cooking Units', icon: '🍳', category: 'Converters',
+    type: 'converter',
+    units: [
+      { id: 'ml', label: 'Milliliters (mL)', factor: 1 },
+      { id: 'tsp', label: 'Teaspoons', factor: 4.92892 },
+      { id: 'tbsp', label: 'Tablespoons', factor: 14.7868 },
+      { id: 'fl_oz', label: 'Fluid Ounces', factor: 29.5735 },
+      { id: 'cup', label: 'Cups', factor: 236.588 },
+      { id: 'g', label: 'Grams (water)', factor: 1 },
+      { id: 'oz', label: 'Ounces (weight)', factor: 28.3495 },
+      { id: 'lb', label: 'Pounds', factor: 453.592 },
+    ],
+  },
+
+  // ── Placeholder categories for future tools ──
+  // These show up in the sidebar but render a "coming soon" state
+  { id: 'temperature', name: 'Temperature', icon: '🌡️', category: 'Converters', type: 'temperature' },
+  { id: 'timezone', name: 'Time Zones', icon: '🌍', category: 'Converters', type: 'timezone' },
+  { id: 'currency', name: 'Currency', icon: '💱', category: 'Converters', type: 'placeholder' },
+  { id: 'color-convert', name: 'Color Codes', icon: '🎨', category: 'Converters', type: 'placeholder' },
+  { id: 'number-base', name: 'Number Bases', icon: '🔢', category: 'Converters', type: 'placeholder' },
+
+  { id: 'basic-calc', name: 'Basic Arithmetic', icon: '🧮', category: 'Calculators', type: 'placeholder' },
+  { id: 'percentage', name: 'Percentage / Tip / Tax', icon: '💵', category: 'Calculators', type: 'placeholder' },
+  { id: 'bmi', name: 'BMI Calculator', icon: '🏋️', category: 'Calculators', type: 'placeholder' },
+  { id: 'loan', name: 'Loan / Mortgage', icon: '🏠', category: 'Calculators', type: 'placeholder' },
+  { id: 'date-diff', name: 'Date Difference', icon: '📅', category: 'Calculators', type: 'placeholder' },
+  { id: 'age', name: 'Age Calculator', icon: '🎂', category: 'Calculators', type: 'placeholder' },
+  { id: 'fuel', name: 'Fuel Consumption', icon: '⛽', category: 'Calculators', type: 'placeholder' },
+
+  { id: 'char-count', name: 'Character Counter', icon: '🔤', category: 'Text Tools', type: 'placeholder' },
+  { id: 'case-convert', name: 'Case Converter', icon: 'Aa', category: 'Text Tools', type: 'placeholder' },
+  { id: 'lorem', name: 'Lorem Ipsum', icon: '📝', category: 'Text Tools', type: 'placeholder' },
+  { id: 'text-diff', name: 'Text Diff', icon: '🔀', category: 'Text Tools', type: 'placeholder' },
+  { id: 'find-replace', name: 'Find & Replace', icon: '🔎', category: 'Text Tools', type: 'placeholder' },
+  { id: 'slug', name: 'Slug / URL Generator', icon: '🔗', category: 'Text Tools', type: 'placeholder' },
+  { id: 'json-format', name: 'JSON Formatter', icon: '{ }', category: 'Text Tools', type: 'placeholder' },
+  { id: 'base64', name: 'Base64 Encode/Decode', icon: '🔐', category: 'Text Tools', type: 'placeholder' },
+  { id: 'url-encode', name: 'URL Encode/Decode', icon: '%', category: 'Text Tools', type: 'placeholder' },
+
+  { id: 'password', name: 'Password Generator', icon: '🔑', category: 'Generators', type: 'placeholder' },
+  { id: 'uuid', name: 'UUID Generator', icon: '🆔', category: 'Generators', type: 'placeholder' },
+  { id: 'qr', name: 'QR Code Generator', icon: '📱', category: 'Generators', type: 'placeholder' },
+  { id: 'random', name: 'Random / Dice / Coin', icon: '🎲', category: 'Generators', type: 'placeholder' },
+  { id: 'palette', name: 'Color Palette', icon: '🌈', category: 'Generators', type: 'placeholder' },
+
+  { id: 'stopwatch', name: 'Stopwatch / Timer', icon: '⏱️', category: 'Date & Time', type: 'placeholder' },
+  { id: 'countdown', name: 'Countdown', icon: '⏳', category: 'Date & Time', type: 'placeholder' },
+  { id: 'unix-ts', name: 'Unix Timestamp', icon: '🕐', category: 'Date & Time', type: 'placeholder' },
+  { id: 'world-clock', name: 'World Clock', icon: '🌐', category: 'Date & Time', type: 'placeholder' },
+
+  { id: 'regex', name: 'Regex Tester', icon: '.*', category: 'Dev Tools', type: 'placeholder' },
+  { id: 'html-entity', name: 'HTML Entities', icon: '<>', category: 'Dev Tools', type: 'placeholder' },
+  { id: 'css-units', name: 'CSS Unit Converter', icon: 'px', category: 'Dev Tools', type: 'placeholder' },
+  { id: 'markdown', name: 'Markdown Preview', icon: 'M↓', category: 'Dev Tools', type: 'placeholder' },
+  { id: 'jwt', name: 'JWT Decoder', icon: '🎟️', category: 'Dev Tools', type: 'placeholder' },
+
+  { id: 'image-resize', name: 'Image Resizer', icon: '🖼️', category: 'Visual / Design', type: 'placeholder' },
+  { id: 'color-picker', name: 'Color Picker', icon: '🖌️', category: 'Visual / Design', type: 'placeholder' },
+  { id: 'aspect-ratio', name: 'Aspect Ratio', icon: '🔲', category: 'Visual / Design', type: 'placeholder' },
+];
+
+// ─────────────────────────────────────────────
+// SHARED CONVERTER ENGINE
+// ─────────────────────────────────────────────
+function formatResult(num) {
+  if (num === 0) return '0';
+  const abs = Math.abs(num);
+  if (abs >= 1e12 || (abs < 1e-6 && abs > 0)) return num.toExponential(6);
+  // smart decimal places
+  if (abs >= 1000) return parseFloat(num.toFixed(4)).toLocaleString('en-US', { maximumFractionDigits: 4 });
+  if (abs >= 1) return parseFloat(num.toFixed(6)).toString();
+  return parseFloat(num.toFixed(10)).toString();
+}
+
+function ConverterTool({ tool }) {
+  const [fromUnit, setFromUnit] = useState(tool.units[0].id);
+  const [toUnit, setToUnit] = useState(tool.units.length > 1 ? tool.units[1].id : tool.units[0].id);
+  const [fromVal, setFromVal] = useState('');
+  const [toVal, setToVal] = useState('');
+  const [lastEdited, setLastEdited] = useState('from'); // 'from' or 'to'
+  const fromRef = useRef(null);
+
+  useEffect(() => {
+    setFromUnit(tool.units[0].id);
+    setToUnit(tool.units.length > 1 ? tool.units[1].id : tool.units[0].id);
+    setFromVal('');
+    setToVal('');
+    setLastEdited('from');
+  }, [tool.id]);
+
+  useEffect(() => {
+    if (fromRef.current) fromRef.current.focus();
+  }, [tool.id]);
+
+  const convert = useCallback((value, from, to, units) => {
+    const fromFactor = units.find(u => u.id === from)?.factor ?? 1;
+    const toFactor = units.find(u => u.id === to)?.factor ?? 1;
+    return (value * fromFactor) / toFactor;
+  }, []);
+
+  const isValidNum = (v) => v !== '' && v !== '-' && !isNaN(parseFloat(v));
+
+  // Recompute the non-edited side whenever units change
+  useEffect(() => {
+    if (lastEdited === 'from' && isValidNum(fromVal)) {
+      setToVal(formatResult(convert(parseFloat(fromVal), fromUnit, toUnit, tool.units)));
+    } else if (lastEdited === 'to' && isValidNum(toVal)) {
+      setFromVal(formatResult(convert(parseFloat(toVal), toUnit, fromUnit, tool.units)));
+    }
+  }, [fromUnit, toUnit]);
+
+  const handleFromChange = (e) => {
+    const v = e.target.value;
+    if (v === '' || v === '-' || /^-?\d*\.?\d*$/.test(v)) {
+      setFromVal(v);
+      setLastEdited('from');
+      if (isValidNum(v)) {
+        setToVal(formatResult(convert(parseFloat(v), fromUnit, toUnit, tool.units)));
+      } else {
+        setToVal('');
+      }
+    }
+  };
+
+  const handleToChange = (e) => {
+    const v = e.target.value;
+    if (v === '' || v === '-' || /^-?\d*\.?\d*$/.test(v)) {
+      setToVal(v);
+      setLastEdited('to');
+      if (isValidNum(v)) {
+        setFromVal(formatResult(convert(parseFloat(v), toUnit, fromUnit, tool.units)));
+      } else {
+        setFromVal('');
+      }
+    }
+  };
+
+  const handleSwap = () => {
+    setFromUnit(toUnit);
+    setToUnit(fromUnit);
+    setFromVal(toVal);
+    setToVal(fromVal);
+    setLastEdited(lastEdited === 'from' ? 'to' : 'from');
+  };
+
+  // Quick reference table: based on whichever side was last edited
+  const sourceUnit = lastEdited === 'from' ? fromUnit : toUnit;
+  const sourceVal = lastEdited === 'from' ? fromVal : toVal;
+  const sourceUnitObj = tool.units.find(u => u.id === sourceUnit);
+  const hasInput = isValidNum(sourceVal);
+  const refNum = hasInput ? parseFloat(sourceVal) : 1;
+
+  const refRows = useMemo(() => {
+    return tool.units
+      .filter(u => u.id !== sourceUnit)
+      .map(u => ({
+        label: u.label,
+        value: formatResult(convert(refNum, sourceUnit, u.id, tool.units)),
+      }));
+  }, [refNum, sourceUnit, tool.units]);
+
+  const refHeader = hasInput
+    ? `${sourceVal} ${sourceUnitObj?.label ?? ''} =`
+    : `1 ${sourceUnitObj?.label ?? ''} =`;
+
+  return (
+    <div className="converter">
+      <div className="converter-grid">
+        <div className="converter-panel">
+          <label>From</label>
+          <select className="converter-select" value={fromUnit} onChange={e => setFromUnit(e.target.value)}>
+            {tool.units.map(u => <option key={u.id} value={u.id}>{u.label}</option>)}
+          </select>
+          <input
+            ref={fromRef}
+            className={`converter-input ${lastEdited === 'to' && isValidNum(toVal) ? 'result' : ''}`}
+            type="text"
+            inputMode="decimal"
+            placeholder="0"
+            value={fromVal}
+            onChange={handleFromChange}
+          />
+        </div>
+
+        <button className="swap-btn" onClick={handleSwap} title="Swap units">⇄</button>
+
+        <div className="converter-panel">
+          <label>To</label>
+          <select className="converter-select" value={toUnit} onChange={e => setToUnit(e.target.value)}>
+            {tool.units.map(u => <option key={u.id} value={u.id}>{u.label}</option>)}
+          </select>
+          <input
+            className={`converter-input ${lastEdited === 'from' && isValidNum(fromVal) ? 'result' : ''}`}
+            type="text"
+            inputMode="decimal"
+            placeholder="0"
+            value={toVal}
+            onChange={handleToChange}
+          />
+        </div>
+      </div>
+
+      <div className="ref-table">
+        <div className="ref-table-header">{refHeader}</div>
+        {refRows.map(r => (
+          <div className="ref-row" key={r.label}>
+            <span className="unit-name">{r.label}</span>
+            <span className="unit-value">{r.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// TEMPERATURE CONVERTER
+// ─────────────────────────────────────────────
+const TEMP_UNITS = [
+  { id: 'c', label: 'Celsius (°C)' },
+  { id: 'f', label: 'Fahrenheit (°F)' },
+  { id: 'k', label: 'Kelvin (K)' },
+];
+
+function tempConvert(value, from, to) {
+  if (from === to) return value;
+  // normalize to Celsius first
+  let c;
+  if (from === 'c') c = value;
+  else if (from === 'f') c = (value - 32) * 5 / 9;
+  else c = value - 273.15; // kelvin
+  // convert from Celsius to target
+  if (to === 'c') return c;
+  if (to === 'f') return c * 9 / 5 + 32;
+  return c + 273.15; // kelvin
+}
+
+function TemperatureTool() {
+  const [fromUnit, setFromUnit] = useState('c');
+  const [toUnit, setToUnit] = useState('f');
+  const [fromVal, setFromVal] = useState('');
+  const [toVal, setToVal] = useState('');
+  const [lastEdited, setLastEdited] = useState('from');
+  const fromRef = useRef(null);
+
+  useEffect(() => { if (fromRef.current) fromRef.current.focus(); }, []);
+
+  const isValid = (v) => v !== '' && v !== '-' && !isNaN(parseFloat(v));
+
+  useEffect(() => {
+    if (lastEdited === 'from' && isValid(fromVal)) {
+      setToVal(formatResult(tempConvert(parseFloat(fromVal), fromUnit, toUnit)));
+    } else if (lastEdited === 'to' && isValid(toVal)) {
+      setFromVal(formatResult(tempConvert(parseFloat(toVal), toUnit, fromUnit)));
+    }
+  }, [fromUnit, toUnit]);
+
+  const handleFromChange = (e) => {
+    const v = e.target.value;
+    if (v === '' || v === '-' || /^-?\d*\.?\d*$/.test(v)) {
+      setFromVal(v);
+      setLastEdited('from');
+      if (isValid(v)) setToVal(formatResult(tempConvert(parseFloat(v), fromUnit, toUnit)));
+      else setToVal('');
+    }
+  };
+
+  const handleToChange = (e) => {
+    const v = e.target.value;
+    if (v === '' || v === '-' || /^-?\d*\.?\d*$/.test(v)) {
+      setToVal(v);
+      setLastEdited('to');
+      if (isValid(v)) setFromVal(formatResult(tempConvert(parseFloat(v), toUnit, fromUnit)));
+      else setFromVal('');
+    }
+  };
+
+  const handleSwap = () => {
+    setFromUnit(toUnit);
+    setToUnit(fromUnit);
+    setFromVal(toVal);
+    setToVal(fromVal);
+    setLastEdited(lastEdited === 'from' ? 'to' : 'from');
+  };
+
+  // Reference table
+  const sourceUnit = lastEdited === 'from' ? fromUnit : toUnit;
+  const sourceVal = lastEdited === 'from' ? fromVal : toVal;
+  const sourceObj = TEMP_UNITS.find(u => u.id === sourceUnit);
+  const hasInput = isValid(sourceVal);
+  const refNum = hasInput ? parseFloat(sourceVal) : 0;
+
+  const refRows = TEMP_UNITS
+    .filter(u => u.id !== sourceUnit)
+    .map(u => ({
+      label: u.label,
+      value: formatResult(tempConvert(hasInput ? refNum : 0, sourceUnit, u.id)),
+    }));
+
+  const refHeader = hasInput
+    ? `${sourceVal} ${sourceObj?.label ?? ''} =`
+    : `0 ${sourceObj?.label ?? ''} =`;
+
+  return (
+    <div className="converter">
+      <div className="converter-grid">
+        <div className="converter-panel">
+          <label>From</label>
+          <select className="converter-select" value={fromUnit} onChange={e => setFromUnit(e.target.value)}>
+            {TEMP_UNITS.map(u => <option key={u.id} value={u.id}>{u.label}</option>)}
+          </select>
+          <input ref={fromRef} className={`converter-input ${lastEdited === 'to' && isValid(toVal) ? 'result' : ''}`}
+            type="text" inputMode="decimal" placeholder="0" value={fromVal} onChange={handleFromChange} />
+        </div>
+        <button className="swap-btn" onClick={handleSwap} title="Swap units">⇄</button>
+        <div className="converter-panel">
+          <label>To</label>
+          <select className="converter-select" value={toUnit} onChange={e => setToUnit(e.target.value)}>
+            {TEMP_UNITS.map(u => <option key={u.id} value={u.id}>{u.label}</option>)}
+          </select>
+          <input className={`converter-input ${lastEdited === 'from' && isValid(fromVal) ? 'result' : ''}`}
+            type="text" inputMode="decimal" placeholder="0" value={toVal} onChange={handleToChange} />
+        </div>
+      </div>
+      <div className="ref-table">
+        <div className="ref-table-header">{refHeader}</div>
+        {refRows.map(r => (
+          <div className="ref-row" key={r.label}>
+            <span className="unit-name">{r.label}</span>
+            <span className="unit-value">{r.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// TIMEZONE CONVERTER
+// ─────────────────────────────────────────────
+
+// Pull all IANA timezones from the browser
+const ALL_TIMEZONES = (() => {
+  try {
+    const zones = Intl.supportedValuesOf('timeZone');
+    const now = new Date();
+    return zones.map(tz => {
+      const city = tz.split('/').pop().replace(/_/g, ' ');
+      const region = tz.split('/')[0].replace(/_/g, ' ');
+      let offsetMin;
+      try {
+        const utcStr = now.toLocaleString('en-US', { timeZone: 'UTC' });
+        const tzStr = now.toLocaleString('en-US', { timeZone: tz });
+        offsetMin = (new Date(tzStr) - new Date(utcStr)) / 60000;
+      } catch { offsetMin = 0; }
+      const sign = offsetMin >= 0 ? '+' : '-';
+      const absMin = Math.abs(offsetMin);
+      const h = String(Math.floor(absMin / 60)).padStart(2, '0');
+      const m = String(absMin % 60).padStart(2, '0');
+      const offsetStr = `UTC${sign}${h}:${m}`;
+      return {
+        id: tz,
+        city,
+        region,
+        offsetMin,
+        label: `${city} (${offsetStr})`,
+        searchText: `${tz} ${city} ${region}`.toLowerCase(),
+      };
+    }).sort((a, b) => a.offsetMin - b.offsetMin);
+  } catch {
+    // Fallback for older browsers
+    return ['America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
+      'Europe/London','Europe/Paris','Europe/Berlin','Asia/Tokyo','Asia/Shanghai',
+      'Australia/Sydney','Pacific/Auckland'].map(tz => ({
+        id: tz, city: tz.split('/').pop().replace(/_/g,' '), region: tz.split('/')[0],
+        offsetMin: 0, label: tz.split('/').pop().replace(/_/g,' '),
+        searchText: tz.toLowerCase(),
+      }));
+  }
+})();
+
+function getUserTimezone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone; }
+  catch { return 'America/New_York'; }
+}
+
+function getOffsetMinutes(tzId, date) {
+  const utcStr = date.toLocaleString('en-US', { timeZone: 'UTC' });
+  const tzStr = date.toLocaleString('en-US', { timeZone: tzId });
+  return (new Date(tzStr) - new Date(utcStr)) / 60000;
+}
+
+function formatTzTime(date, tzId) {
+  try {
+    return date.toLocaleString('en-US', {
+      timeZone: tzId, weekday: 'short', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true,
+    });
+  } catch { return '—'; }
+}
+
+function formatTzTimeShort(date, tzId) {
+  try {
+    return date.toLocaleString('en-US', {
+      timeZone: tzId, hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+  } catch { return '—'; }
+}
+
+// ── Searchable timezone combobox ──
+function TzCombobox({ value, onChange, label }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const wrapperRef = useRef(null);
+  const listRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const currentTz = ALL_TIMEZONES.find(tz => tz.id === value);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return ALL_TIMEZONES;
+    const q = query.toLowerCase().replace(/\s+/g, ' ');
+    return ALL_TIMEZONES.filter(tz => tz.searchText.includes(q));
+  }, [query]);
+
+  // Reset highlight when filter changes
+  useEffect(() => { setHighlightIdx(0); }, [filtered]);
+
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (open && listRef.current) {
+      const el = listRef.current.children[highlightIdx];
+      if (el) el.scrollIntoView({ block: 'nearest' });
+    }
+  }, [highlightIdx, open]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleSelect = (tzId) => {
+    onChange(tzId);
+    setOpen(false);
+    setQuery('');
+    inputRef.current?.blur();
+  };
+
+  const handleKeyDown = (e) => {
+    if (!open) { if (e.key === 'ArrowDown' || e.key === 'Enter') setOpen(true); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx(i => Math.min(i + 1, filtered.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIdx(i => Math.max(i - 1, 0)); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (filtered[highlightIdx]) handleSelect(filtered[highlightIdx].id); }
+    else if (e.key === 'Escape') { setOpen(false); setQuery(''); inputRef.current?.blur(); }
+  };
+
+  return (
+    <div className="tz-combo" ref={wrapperRef}>
+      <label>{label}</label>
+      <div className="tz-combo-input-wrap">
+        <input
+          ref={inputRef}
+          className="tz-combo-input"
+          type="text"
+          placeholder={currentTz?.label ?? 'Search timezone...'}
+          value={open ? query : ''}
+          onFocus={() => { setOpen(true); setQuery(''); }}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <span className="tz-combo-current" style={{ display: open ? 'none' : 'block' }}>
+          {currentTz?.label ?? value}
+        </span>
+        <span className="tz-combo-chevron">{open ? '▴' : '▾'}</span>
+      </div>
+      {open && (
+        <div className="tz-combo-dropdown" ref={listRef}>
+          {filtered.length === 0 && <div className="tz-combo-empty">No timezones match "{query}"</div>}
+          {filtered.map((tz, i) => (
+            <div
+              key={tz.id}
+              className={`tz-combo-option ${tz.id === value ? 'selected' : ''} ${i === highlightIdx ? 'highlighted' : ''}`}
+              onMouseEnter={() => setHighlightIdx(i)}
+              onMouseDown={(e) => { e.preventDefault(); handleSelect(tz.id); }}
+            >
+              <span className="tz-combo-city">{tz.city}</span>
+              <span className="tz-combo-region">{tz.region}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TimezoneTool() {
+  const userTz = useMemo(() => getUserTimezone(), []);
+  const defaultToTz = useMemo(() => {
+    const isAmericas = userTz.startsWith('America') || userTz.startsWith('Pacific/H') || userTz.startsWith('Pacific/M');
+    return isAmericas ? 'Europe/London' : 'America/New_York';
+  }, [userTz]);
+
+  const [fromTz, setFromTz] = useState(userTz);
+  const [toTz, setToTz] = useState(defaultToTz);
+  const [now, setNow] = useState(new Date());
+  const [customTime, setCustomTime] = useState('');
+  const [useCustom, setUseCustom] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const refDate = useMemo(() => {
+    if (!useCustom || !customTime) return now;
+    try {
+      const tempDate = new Date(now);
+      const dateStr = tempDate.toLocaleDateString('en-CA', { timeZone: fromTz });
+      const offsetMin = getOffsetMinutes(fromTz, tempDate);
+      const utc = new Date(`${dateStr}T${customTime}:00.000Z`);
+      utc.setMinutes(utc.getMinutes() - offsetMin);
+      return utc;
+    } catch { return now; }
+  }, [useCustom, customTime, now, fromTz]);
+
+  const handleSwap = () => { setFromTz(toTz); setToTz(fromTz); };
+
+  const currentFromTime = useMemo(() => {
+    try { return now.toLocaleTimeString('en-GB', { timeZone: fromTz, hour: '2-digit', minute: '2-digit' }); }
+    catch { return '12:00'; }
+  }, [now, fromTz]);
+
+  // Pick a representative subset for the reference table (every ~2-3 hour jump)
+  const REF_ZONES = useMemo(() => {
+    const picks = ['Pacific/Honolulu','America/Los_Angeles','America/Chicago','America/New_York',
+      'America/Sao_Paulo','Europe/London','Europe/Paris','Europe/Moscow','Asia/Dubai',
+      'Asia/Kolkata','Asia/Shanghai','Asia/Tokyo','Australia/Sydney','Pacific/Auckland'];
+    return picks
+      .filter(id => id !== fromTz && id !== toTz && ALL_TIMEZONES.some(tz => tz.id === id))
+      .map(id => {
+        const tz = ALL_TIMEZONES.find(t => t.id === id);
+        return { label: tz?.label ?? id, value: formatTzTimeShort(refDate, id) };
+      });
+  }, [refDate, fromTz, toTz]);
+
+  return (
+    <div className="converter">
+      <div className="converter-grid">
+        <div className="converter-panel">
+          <TzCombobox label="From" value={fromTz} onChange={setFromTz} />
+          <div className="tz-time-display">{formatTzTime(refDate, fromTz)}</div>
+          <div className="tz-custom-row">
+            <label className="tz-custom-label">
+              <input type="checkbox" checked={useCustom} onChange={e => {
+                setUseCustom(e.target.checked);
+                if (e.target.checked && !customTime) setCustomTime(currentFromTime);
+              }} />
+              <span>Custom time</span>
+            </label>
+            {useCustom && (
+              <input type="time" className="tz-time-input" value={customTime}
+                onChange={e => setCustomTime(e.target.value)} />
+            )}
+          </div>
+        </div>
+
+        <button className="swap-btn" onClick={handleSwap} title="Swap zones">⇄</button>
+
+        <div className="converter-panel">
+          <TzCombobox label="To" value={toTz} onChange={setToTz} />
+          <div className="tz-time-display accent">{formatTzTime(refDate, toTz)}</div>
+          <div className="tz-offset-badge">
+            {(() => {
+              const diff = (getOffsetMinutes(toTz, refDate) - getOffsetMinutes(fromTz, refDate)) / 60;
+              const sign = diff >= 0 ? '+' : '';
+              const hrs = Math.floor(Math.abs(diff));
+              const mins = Math.round((Math.abs(diff) - hrs) * 60);
+              return `${sign}${diff < 0 ? '-' : ''}${hrs}${mins ? `:${String(mins).padStart(2,'0')}` : ''} hours`;
+            })()}
+          </div>
+        </div>
+      </div>
+
+      <div className="ref-table">
+        <div className="ref-table-header">Same moment worldwide</div>
+        {REF_ZONES.map(r => (
+          <div className="ref-row" key={r.label}>
+            <span className="unit-name">{r.label}</span>
+            <span className="unit-value">{r.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// PLACEHOLDER TOOL (coming soon)
+// ─────────────────────────────────────────────
+function PlaceholderTool({ tool }) {
+  return (
+    <div className="welcome" style={{ opacity: 0.5 }}>
+      <div className="welcome-icon">{tool.icon}</div>
+      <h2>{tool.name}</h2>
+      <p>This tool is coming soon. The framework is ready — implementation pending.</p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// APP SHELL
+// ─────────────────────────────────────────────
+function App() {
+  const [activeId, setActiveId] = useState(null);
+  const [search, setSearch] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const activeTool = TOOL_REGISTRY.find(t => t.id === activeId);
+
+  const filteredTools = useMemo(() => {
+    if (!search.trim()) return TOOL_REGISTRY;
+    const q = search.toLowerCase();
+    return TOOL_REGISTRY.filter(t =>
+      t.name.toLowerCase().includes(q) ||
+      t.category.toLowerCase().includes(q) ||
+      t.id.includes(q) ||
+      (t.units && t.units.some(u => u.label.toLowerCase().includes(q) || u.id.toLowerCase().includes(q)))
+    );
+  }, [search]);
+
+  // Group by category preserving order
+  const grouped = useMemo(() => {
+    const cats = [];
+    const seen = new Set();
+    for (const t of filteredTools) {
+      if (!seen.has(t.category)) {
+        seen.add(t.category);
+        cats.push({ category: t.category, tools: [] });
+      }
+      cats.find(c => c.category === t.category).tools.push(t);
+    }
+    return cats;
+  }, [filteredTools]);
+
+  const handleSelect = (id) => {
+    setActiveId(id);
+    setSidebarOpen(false);
+  };
+
+  return (
+    <div className="app">
+      <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-header">
+          <div className="logo">
+            <div className="logo-icon">⚙</div>
+            <span className="logo-text">ToolVault</span>
+            <span className="logo-tag">PWA</span>
+          </div>
+          <div className="search-box">
+            <span className="search-icon">⌕</span>
+            <input
+              type="text"
+              placeholder="Search tools…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+        <nav className="sidebar-nav">
+          {grouped.length === 0 && <div className="nav-empty">No tools match "{search}"</div>}
+          {grouped.map(g => (
+            <React.Fragment key={g.category}>
+              <div className="nav-category">{g.category}</div>
+              {g.tools.map(t => (
+                <div
+                  key={t.id}
+                  className={`nav-item ${activeId === t.id ? 'active' : ''}`}
+                  onClick={() => handleSelect(t.id)}
+                >
+                  <span className="nav-item-icon">{t.icon}</span>
+                  <span className="nav-item-label">{t.name}</span>
+                </div>
+              ))}
+            </React.Fragment>
+          ))}
+        </nav>
+        <div className="pwa-status">
+          <span className="pwa-dot" />
+          Offline Ready
+        </div>
+      </aside>
+
+      <main className="main">
+        <div className="main-header">
+          <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)}>☰</button>
+          {activeTool ? (
+            <div>
+              <div className="main-title">{activeTool.icon} {activeTool.name}</div>
+              <div className="main-subtitle">{activeTool.category}</div>
+            </div>
+          ) : (
+            <div className="main-title">ToolVault</div>
+          )}
+        </div>
+        <div className="main-body">
+          <div className="main-body-inner">
+            {!activeTool && (
+              <div className="welcome">
+                <div className="welcome-icon">⚙</div>
+                <h2>Pick a tool</h2>
+                <p>Select a converter or tool from the sidebar to get started. Everything runs locally in your browser — no server needed.</p>
+              </div>
+            )}
+            {activeTool?.type === 'converter' && <ConverterTool tool={activeTool} />}
+            {activeTool?.type === 'temperature' && <TemperatureTool />}
+            {activeTool?.type === 'timezone' && <TimezoneTool />}
+            {activeTool?.type === 'placeholder' && <PlaceholderTool tool={activeTool} />}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+<script>
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
